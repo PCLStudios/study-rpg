@@ -30,6 +30,7 @@ export default function Shop() {
       localStorage.setItem('shop_reset', String(resetAt));
     }
     setShopResetAt(resetAt);
+    setTimeLeft(Math.max(0, resetAt - Date.now()));
 
     fetchNewCatalog();
 
@@ -228,7 +229,7 @@ export default function Shop() {
                     <div className="text-sm truncate max-w-[70%]">{c.title}</div>
                     <div className="flex items-center gap-2">
                       {c.averageScore ? (
-                        <div className="text-yellow-400 text-sm">{Array.from({length: Math.max(0, Math.min(5, Math.round(c.averageScore/20))) }).map((_,i)=>(<span key={i}>★</span>))}</div>
+                        <div className="text-yellow-300 text-sm">{c.averageScore}%</div>
                       ) : null}
                       <button disabled={loading || chuts < 5000} onClick={() => buyCatalogItem(c, idx)} className="ml-2 px-3 py-1 rounded text-white bg-gradient-to-r from-pink-500 via-rose-500 to-yellow-400 shadow-lg hover:scale-105 transition">
                         Buy 5k

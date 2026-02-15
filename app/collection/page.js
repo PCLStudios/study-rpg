@@ -39,10 +39,13 @@ export default function Collection() {
               <div className="text-gray-400">No results. Try searching.</div>
             )}
             {results.map((r) => (
-              <div key={r.id} className="bg-white/5 p-4 rounded-2xl border border-white/10 glass">
-                <img src={r.coverImage?.large || r.coverImage?.medium} alt={r.title?.romaji} className="w-full rounded-lg mb-3" />
+              <div key={r.id} className="bg-white/5 p-4 rounded-2xl border border-white/10 glass hover:scale-105 hover:-translate-y-1 transform transition-all duration-200">
+                <div className="w-full rounded-lg mb-3 bg-black/10 h-48 flex items-center justify-center overflow-hidden">
+                  <img src={r.coverImage?.large || r.coverImage?.medium} alt={r.title?.romaji} className="w-full object-contain" />
+                </div>
                 <div className="font-semibold">{r.title?.english || r.title?.romaji || r.title?.native}</div>
                 <div className="text-sm text-gray-400">{r.genres?.slice(0,3).join(', ')}</div>
+                {r.averageScore ? <div className="text-sm text-yellow-300 mt-1">{r.averageScore}%</div> : null}
               </div>
             ))}
           </div>
