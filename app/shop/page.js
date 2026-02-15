@@ -1,9 +1,8 @@
 "use client";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import Navbar from "../../components/Navbar";
 import { getSP, setSP } from "../../lib/sp";
 import { fetchAnimeList } from "../../lib/api";
-import Roulette from "../../components/Roulette";
 
 function rarityForRandom() {
   const r = Math.random() * 100;
@@ -49,20 +48,21 @@ export default function Shop() {
     localStorage.setItem('spins', String(next));
   }
 
-  const rouletteRef = useRef();
-
-  async function handleResultFromWheel({ index, sector }) {
+  async function spinOnce() {
+    if (spins <= 0) return alert('No spins available');
+    setRolling(true);
     try {
       const page = Math.floor(Math.random() * 40) + 1;
       const list = await fetchAnimeList('', page, 20);
       if (!list || list.length === 0) throw new Error('No results');
       list.sort((a,b)=> (b.popularity||0) - (a.popularity||0));
       const pick = list[Math.floor(Math.random() * list.length)];
+      const rarity = rarityForRandom();
       const anime = {
         id: String(pick.id),
         title: (pick.title?.english || pick.title?.romaji || pick.title?.native || 'Unknown'),
         image: pick.coverImage?.large || pick.coverImage?.medium || '/next.svg',
-        rarity: sector.toLowerCase(),
+        rarity,
       };
 
       try {
@@ -90,7 +90,6 @@ export default function Shop() {
       const next = spins - 1;
       setSpins(next);
       localStorage.setItem('spins', String(next));
-      runConfetti();
       alert(`Unlocked: ${anime.title} (${anime.rarity})`);
     } catch (err) {
       console.error(err);
@@ -98,12 +97,6 @@ export default function Shop() {
     } finally {
       setRolling(false);
     }
-  }
-
-  function spinOnce() {
-    if (spins <= 0) return alert('No spins available');
-    setRolling(true);
-    rouletteRef.current?.spin(handleResultFromWheel);
   }
 
   function spendForSpin() {
@@ -163,9 +156,7 @@ export default function Shop() {
             </div>
           </div>
 
-          <div className="mt-6 flex justify-center">
-            <Roulette ref={rouletteRef} />
-          </div>
+          {/* Simple recent unlocks display; roulette removed for stability */}
 
           <div className="mt-8">
             <h3 className="text-lg font-semibold mb-3">Recent Unlocks</h3>
