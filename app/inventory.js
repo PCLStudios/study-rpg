@@ -2,6 +2,13 @@
 import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 
+function rarityColor(r) {
+  if (r === 'legendary') return 'ring-yellow-400';
+  if (r === 'epic') return 'ring-purple-500';
+  if (r === 'rare') return 'ring-blue-400';
+  return 'ring-gray-500';
+}
+
 export default function Inventory() {
   const [inventory, setInventory] = useState([]);
 
@@ -25,9 +32,10 @@ export default function Inventory() {
               <div className="text-gray-400">No items yet. Try spinning in the Shop!</div>
             )}
             {inventory.map((item) => (
-              <div key={item.id} className="bg-white/5 p-4 rounded-2xl border border-white/10 glass">
+              <div key={item.id} className={`bg-white/5 p-4 rounded-2xl border border-white/10 glass ring-2 ${rarityColor(item.rarity)}`}>
                 <img src={item.image} alt={item.title} className="w-full rounded-lg mb-3" />
                 <div className="font-semibold">{item.title}</div>
+                <div className="text-sm text-gray-400">Rarity: {item.rarity}</div>
               </div>
             ))}
           </div>
