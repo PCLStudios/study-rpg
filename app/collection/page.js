@@ -45,7 +45,7 @@ export default function Collection() {
                 </div>
                 <div className="font-semibold">{r.title?.english || r.title?.romaji || r.title?.native}</div>
                 <div className="text-sm text-gray-400">{r.genres?.slice(0,3).join(', ')}</div>
-                {r.averageScore ? <div className="text-sm text-yellow-300 mt-1">{r.averageScore}%</div> : null}
+                {r.averageScore ? <div className="text-sm text-yellow-300 mt-1">{r.averageScore}% rating</div> : null}
               </div>
             ))}
           </div>
