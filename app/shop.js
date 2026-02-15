@@ -1,8 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Navbar from "../components/Navbar";
 import { getSP, setSP } from "../lib/sp";
 import { fetchAnimeList } from "../lib/api";
+import Roulette from "../components/Roulette";
 
 function rarityForRandom() {
   const r = Math.random() * 100;
@@ -48,22 +49,22 @@ export default function Shop() {
     localStorage.setItem('spins', String(next));
   }
 
-  async function spinOnce() {
-    if (spins <= 0) return alert('No spins available');
-    setRolling(true);
+  const rouletteRef = useRef();
+
+  async function handleResultFromWheel({ index, sector }) {
     try {
-      // fetch a page of anime and pick random
+      // fetch a page and pick an anime
       const page = Math.floor(Math.random() * 40) + 1;
       const list = await fetchAnimeList('', page, 20);
       if (!list || list.length === 0) throw new Error('No results');
+      // bias selection slightly by popularity
+      list.sort((a,b)=> (b.popularity||0) - (a.popularity||0));
       const pick = list[Math.floor(Math.random() * list.length)];
-      const rarity = rarityForRandom();
-
       const anime = {
         id: String(pick.id),
         title: (pick.title?.english || pick.title?.romaji || pick.title?.native || 'Unknown'),
         image: pick.coverImage?.large || pick.coverImage?.medium || '/next.svg',
-        rarity,
+        rarity: sector.toLowerCase(),
       };
 
       const invRaw = localStorage.getItem('inventory');
@@ -75,13 +76,22 @@ export default function Shop() {
       const next = spins - 1;
       setSpins(next);
       localStorage.setItem('spins', String(next));
-      alert(`Unlocked: ${anime.title} (${rarity})`);
+      // confetti
+      runConfetti();
+      alert(`Unlocked: ${anime.title} (${anime.rarity})`);
     } catch (err) {
       console.error(err);
       alert('Spin failed. Try again.');
     } finally {
       setRolling(false);
     }
+  }
+
+  function spinOnce() {
+    if (spins <= 0) return alert('No spins available');
+    setRolling(true);
+    // start roulette animation then handle result
+    rouletteRef.current?.spin(handleResultFromWheel);
   }
 
   function spendForSpin() {
@@ -91,6 +101,33 @@ export default function Shop() {
     const next = spins + 1;
     setSpins(next);
     localStorage.setItem('spins', String(next));
+  }
+
+  // Small confetti effect
+  function runConfetti() {
+    if (typeof document === 'undefined') return;
+    const root = document.createElement('div');
+    root.className = 'fixed inset-0 pointer-events-none z-50';
+    for (let i=0;i<40;i++){
+      const el = document.createElement('div');
+      el.style.position = 'absolute';
+      el.style.left = `${Math.random()*100}%`;
+      el.style.top = `${Math.random()*20}%`;
+      el.style.width = '8px'; el.style.height = '14px';
+      el.style.background = ['#f59e0b','#8b5cf6','#06b6d4','#ec4899'][Math.floor(Math.random()*4)];
+      el.style.opacity = '0.95';
+      el.style.transform = `rotate(${Math.random()*360}deg)`;
+      el.style.borderRadius = '2px';
+      el.style.transition = 'transform 1.6s linear, top 1.6s linear, opacity 1.6s linear';
+      root.appendChild(el);
+      requestAnimationFrame(()=>{
+        el.style.top = `${80 + Math.random()*20}%`;
+        el.style.transform = `translateY(200px) rotate(${Math.random()*720}deg)`;
+        el.style.opacity = '0';
+      });
+    }
+    document.body.appendChild(root);
+    setTimeout(()=>root.remove(),1800);
   }
 
   return (
@@ -113,6 +150,10 @@ export default function Shop() {
               <button onClick={() => buySpins(1)} className="px-4 py-2 bg-purple-600 rounded-xl">Buy 5 Spins (500 SP)</button>
               <button onClick={spendForSpin} className="px-4 py-2 bg-blue-600 rounded-xl">Spend 200 SP for 1 Spin</button>
             </div>
+          </div>
+
+          <div className="mt-6 flex justify-center">
+            <Roulette ref={rouletteRef} />
           </div>
 
           <div className="mt-8">
