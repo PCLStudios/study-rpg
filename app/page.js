@@ -1,25 +1,25 @@
 "use client";
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
-import { getSP } from "../lib/sp";
+import { getChuts } from "../lib/sp";
 
 export default function Home() {
-  const [sp, setSp] = useState(1250);
-  const [displaySp, setDisplaySp] = useState(0);
+  const [chuts, setChuts] = useState(1250);
+  const [displayChuts, setDisplayChuts] = useState(0);
 
   useEffect(() => {
-    setSp(getSP());
+    setChuts(getChuts());
   }, []);
 
   useEffect(() => {
     let start = 0;
     const interval = setInterval(() => {
       start += 25;
-      if (start >= sp) { start = sp; clearInterval(interval); }
-      setDisplaySp(start);
+      if (start >= chuts) { start = chuts; clearInterval(interval); }
+      setDisplayChuts(start);
     }, 15);
     return () => clearInterval(interval);
-  }, [sp]);
+  }, [chuts]);
 
   return (
     <>
@@ -29,8 +29,8 @@ export default function Home() {
           <div className="flex justify-between items-center mb-12">
             <h1 className="text-3xl font-semibold tracking-tight">Study RPG</h1>
             <div className="bg-white/10 backdrop-blur-xl px-6 py-3 rounded-2xl border border-white/10">
-              <span className="text-gray-400 text-sm">Study Points</span>
-              <div className="text-xl font-bold">{displaySp} SP</div>
+              <span className="text-gray-400 text-sm">Chuts</span>
+              <div className="text-xl font-bold">{displayChuts} Chuts</div>
             </div>
           </div>
 
@@ -45,7 +45,7 @@ export default function Home() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 mt-14">
-            <GlassCard title="Shop">Spend your SP on spins and boosts.</GlassCard>
+            <GlassCard title="Shop">Spend your Chuts on spins and boosts.</GlassCard>
             <GlassCard title="Collection">Track all unlocked anime.</GlassCard>
             <GlassCard title="Inventory">Manage boosts and special items.</GlassCard>
           </div>

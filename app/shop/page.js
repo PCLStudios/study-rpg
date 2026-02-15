@@ -1,173 +1,181 @@
 "use client";
 import { useEffect, useState } from "react";
 import Navbar from "../../components/Navbar";
-import { getSP, setSP } from "../../lib/sp";
+import { getChuts, setChuts, getSpins, setSpins } from "../../lib/sp";
 import { fetchAnimeList } from "../../lib/api";
 
-function rarityForRandom() {
-  const r = Math.random() * 100;
-  if (r <= 5) return 'legendary';
-  if (r <= 20) return 'epic';
-  if (r <= 50) return 'rare';
-  return 'common';
-}
-
-function rarityColor(r) {
-  if (r === 'legendary') return 'bg-yellow-400';
-  if (r === 'epic') return 'bg-purple-500';
-  if (r === 'rare') return 'bg-blue-400';
-  return 'bg-gray-400';
-}
-
 export default function Shop() {
-  const [sp, setSpState] = useState(1250);
-  const [spins, setSpins] = useState(0);
-  const [rolling, setRolling] = useState(false);
+  const [chuts, setChutsLocal] = useState(1250);
+  const [spins, setSpinsLocal] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [catalog, setCatalog] = useState([]);
   const [recent, setRecent] = useState([]);
 
   useEffect(() => {
-    setSpState(getSP());
-    if (typeof window !== 'undefined') {
-      const s = localStorage.getItem('spins');
-      setSpins(s ? parseInt(s, 10) : 0);
-      setRecent(JSON.parse(localStorage.getItem('inventory') || '[]').slice(0,6));
-    }
+    if (typeof window === "undefined") return;
+    setChutsLocal(getChuts());
+    setSpinsLocal(getSpins());
+    setRecent(JSON.parse(localStorage.getItem("inventory") || "[]").slice(0, 6));
+    // prefetch a small catalog
+    (async () => {
+      try {
+        const list = await fetchAnimeList('', 1, 8);
+        setCatalog(list || []);
+      } catch (e) {
+        console.warn('catalog fetch failed', e);
+      }
+    })();
   }, []);
 
-  function updateSP(next) {
-    setSP(next);
-    setSpState(next);
+  function updateChuts(n) {
+    setChutsLocal(n);
+    setChuts(n);
+  }
+  function updateSpins(n) {
+    setSpinsLocal(n);
+    setSpins(n);
   }
 
-  function buySpins(pack = 1) {
-    const cost = 500 * pack;
-    if (sp < cost) return alert('Not enough SP');
-    updateSP(sp - cost);
-    const next = spins + 5 * pack;
-    setSpins(next);
-    localStorage.setItem('spins', String(next));
-  }
+  const addInfiniteChuts = () => {
+    updateChuts(999999);
+  };
 
-  async function spinOnce() {
-    if (spins <= 0) return alert('No spins available');
-    setRolling(true);
+  const buySpin = () => {
+    const cost = 50; // cheaper spin cost
+    if (chuts < cost) { setMessage('Not enough Chuts'); return; }
+    const next = chuts - cost;
+    updateChuts(next);
+    updateSpins(spins + 1);
+    setMessage('Bought 1 spin');
+  };
+
+  const buyCatalogItem = async (item) => {
+    // price 5000 chuts
+    const price = 5000;
+    if (chuts < price) { setMessage('Not enough Chuts for purchase'); return; }
+    setLoading(true);
     try {
-      const page = Math.floor(Math.random() * 40) + 1;
-      const list = await fetchAnimeList('', page, 20);
-      if (!list || list.length === 0) throw new Error('No results');
-      list.sort((a,b)=> (b.popularity||0) - (a.popularity||0));
-      const pick = list[Math.floor(Math.random() * list.length)];
-      const rarity = rarityForRandom();
-      const anime = {
-        id: String(pick.id),
-        title: (pick.title?.english || pick.title?.romaji || pick.title?.native || 'Unknown'),
-        image: pick.coverImage?.large || pick.coverImage?.medium || '/next.svg',
-        rarity,
-      };
-
-      try {
-        if (anime.image && anime.image.startsWith('http')) {
-          const resp = await fetch(anime.image);
-          const blob = await resp.blob();
+      // try to fetch image and convert to data URL
+      let image = item.coverImage?.large || item.coverImage?.medium || item.coverImage?.extraLarge || item.coverImage?.large || '';
+      if (image && image.startsWith('http')) {
+        try {
+          const res = await fetch(image);
+          const blob = await res.blob();
           const reader = new FileReader();
-          const dataUrl = await new Promise((res, rej) => {
-            reader.onload = () => res(reader.result);
+          const data = await new Promise((res2, rej) => {
+            reader.onload = () => res2(reader.result);
             reader.onerror = rej;
             reader.readAsDataURL(blob);
           });
-          anime.image = dataUrl;
+          image = data;
+        } catch (e) {
+          console.warn('image convert failed', e);
         }
-      } catch (err) {
-        console.warn('image fetch failed', err);
       }
 
+      const title = item.title?.english || item.title?.romaji || item.title?.native || 'Unknown';
       const invRaw = localStorage.getItem('inventory');
       const inv = invRaw ? JSON.parse(invRaw) : [];
-      if (!inv.find((i) => i.id === anime.id)) inv.unshift(anime);
+      const entry = { id: String(item.id), title, image };
+      inv.unshift(entry);
+      localStorage.setItem('inventory', JSON.stringify(inv));
+      updateChuts(chuts - price);
+      setRecent(inv.slice(0,6));
+      setMessage(`Purchased ${title}`);
+    } catch (e) {
+      console.error(e);
+      setMessage('Purchase failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const doSpin = async () => {
+    if (spins <= 0) { setMessage('No spins left'); return; }
+    setLoading(true);
+    try {
+      const page = Math.floor(Math.random() * 20) + 1;
+      const list = await fetchAnimeList('', page, 20);
+      if (!list || list.length === 0) throw new Error('No results');
+      const pick = list[Math.floor(Math.random() * list.length)];
+      let image = pick.coverImage?.large || pick.coverImage?.medium || pick.coverImage?.extraLarge || '';
+      if (image && image.startsWith('http')) {
+        try {
+          const res = await fetch(image);
+          const blob = await res.blob();
+          const reader = new FileReader();
+          image = await new Promise((res2, rej) => {
+            reader.onload = () => res2(reader.result);
+            reader.onerror = rej;
+            reader.readAsDataURL(blob);
+          });
+        } catch (e) {
+          console.warn('image convert failed', e);
+        }
+      }
+      const title = pick.title?.english || pick.title?.romaji || pick.title?.native || 'Unknown';
+      const invRaw = localStorage.getItem('inventory');
+      const inv = invRaw ? JSON.parse(invRaw) : [];
+      const entry = { id: String(pick.id), title, image };
+      inv.unshift(entry);
       localStorage.setItem('inventory', JSON.stringify(inv));
       setRecent(inv.slice(0,6));
-
-      const next = spins - 1;
-      setSpins(next);
-      localStorage.setItem('spins', String(next));
-      alert(`Unlocked: ${anime.title} (${anime.rarity})`);
-    } catch (err) {
-      console.error(err);
-      alert('Spin failed. Try again.');
+      updateSpins(spins - 1);
+      setMessage(`Unlocked ${title}`);
+    } catch (e) {
+      console.error(e);
+      setMessage('Spin failed');
     } finally {
-      setRolling(false);
+      setLoading(false);
     }
-  }
-
-  function spendForSpin() {
-    const cost = 200;
-    if (sp < cost) return alert('Not enough SP');
-    updateSP(sp - cost);
-    const next = spins + 1;
-    setSpins(next);
-    localStorage.setItem('spins', String(next));
-  }
-
-  function runConfetti() {
-    if (typeof document === 'undefined') return;
-    const root = document.createElement('div');
-    root.className = 'fixed inset-0 pointer-events-none z-50';
-    for (let i=0;i<40;i++){
-      const el = document.createElement('div');
-      el.style.position = 'absolute';
-      el.style.left = `${Math.random()*100}%`;
-      el.style.top = `${Math.random()*20}%`;
-      el.style.width = '8px'; el.style.height = '14px';
-      el.style.background = ['#f59e0b','#8b5cf6','#06b6d4','#ec4899'][Math.floor(Math.random()*4)];
-      el.style.opacity = '0.95';
-      el.style.transform = `rotate(${Math.random()*360}deg)`;
-      el.style.borderRadius = '2px';
-      el.style.transition = 'transform 1.6s linear, top 1.6s linear, opacity 1.6s linear';
-      root.appendChild(el);
-      requestAnimationFrame(()=>{
-        el.style.top = `${80 + Math.random()*20}%`;
-        el.style.transform = `translateY(200px) rotate(${Math.random()*720}deg)`;
-        el.style.opacity = '0';
-      });
-    }
-    document.body.appendChild(root);
-    setTimeout(()=>root.remove(),1800);
-  }
+  };
 
   return (
     <div>
       <Navbar />
       <main className="min-h-screen bg-[#0f0f14] text-white px-6 py-10">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between mb-8">
             <h1 className="text-2xl font-semibold">Shop</h1>
             <div className="bg-white/10 backdrop-blur-xl px-6 py-3 rounded-2xl border border-white/10">
-              <div className="text-sm text-gray-400">Study Points</div>
-              <div className="font-bold">{sp} SP</div>
+              <div className="text-sm text-gray-400">Chuts</div>
+              <div className="font-bold">{chuts} Chuts</div>
+              <button onClick={addInfiniteChuts} className="mt-2 px-2 py-1 bg-emerald-600 rounded hover:scale-105 transition">Add Infinite Chuts</button>
             </div>
           </div>
 
-          <div className="bg-white/5 p-6 rounded-2xl border border-white/10 glass">
+          <div className="bg-white/5 p-6 rounded-2xl border border-white/10 glass mb-6">
             <h2 className="text-lg font-semibold mb-3">Spins: {spins}</h2>
             <div className="flex gap-3 flex-wrap">
-              <button onClick={spinOnce} disabled={rolling || spins<=0} className="px-4 py-2 bg-white text-black rounded-xl">Use Spin</button>
-              <button onClick={() => buySpins(1)} className="px-4 py-2 bg-purple-600 rounded-xl">Buy 5 Spins (500 SP)</button>
-              <button onClick={spendForSpin} className="px-4 py-2 bg-blue-600 rounded-xl">Spend 200 SP for 1 Spin</button>
+              <button onClick={doSpin} disabled={loading || spins<=0} className="px-4 py-2 bg-white text-black rounded-xl">Use Spin</button>
+              <button onClick={buySpin} className="px-4 py-2 bg-purple-600 rounded-xl hover:scale-105 transition">Buy 1 Spin (50 Chuts)</button>
+            </div>
+            {message && <div className="mt-3 text-sm text-gray-300">{message}</div>}
+          </div>
+
+          <div className="mb-8">
+            <h2 className="text-lg font-semibold mb-3">Buy from Catalog (5000 Chuts each)</h2>
+            <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
+              {catalog.map((c) => (
+                <div key={c.id} className="bg-white/5 p-3 rounded-2xl border border-white/10">
+                  <img src={c.coverImage?.large || c.coverImage?.medium || '/next.svg'} alt={c.title?.romaji} className="w-full rounded-lg mb-2 object-cover h-48" />
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm truncate">{c.title?.romaji || c.title?.english}</div>
+                    <button onClick={() => buyCatalogItem(c)} className="ml-2 px-3 py-1 bg-rose-600 rounded hover:scale-105 transition">Buy 5k</button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Simple recent unlocks display; roulette removed for stability */}
-
-          <div className="mt-8">
+          <div>
             <h3 className="text-lg font-semibold mb-3">Recent Unlocks</h3>
             <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
               {recent.map((item) => (
                 <div key={item.id} className="bg-white/5 p-3 rounded-2xl border border-white/10">
-                  <img src={item.image} alt="art" className="w-full rounded-lg mb-2" />
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm">{item.title}</div>
-                    <div className={`px-2 py-1 rounded-full text-xs ${rarityColor(item.rarity)}`}>{item.rarity}</div>
-                  </div>
+                  <img src={item.image || '/next.svg'} alt={item.title} className="w-full rounded-lg mb-2 object-cover h-40" />
+                  <div className="text-sm truncate">{item.title}</div>
                 </div>
               ))}
             </div>
