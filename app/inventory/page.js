@@ -40,8 +40,8 @@ export default function Inventory() {
             )}
             {inventory.map((item) => (
               <div key={item.id} className={`bg-white/5 p-4 rounded-2xl border border-white/10 glass ring-2 ${rarityColor(item.rarity)} hover:scale-105 hover:-translate-y-1 transform transition-all duration-200`}>
-                <div className="w-full rounded-lg mb-3 bg-black/10 h-40 flex items-center justify-center overflow-hidden">
-                  <img src={item.image} alt={item.title} className="w-full object-contain" />
+                <div className="w-full rounded-lg mb-3 bg-black/10 overflow-hidden" style={{paddingBottom: '75%', position: 'relative'}}>
+                  <img src={item.image} alt={item.title} className="absolute inset-0 w-full h-full object-cover" />
                 </div>
                 <div className="font-semibold">{item.title}</div>
                 <div className="text-sm text-gray-400">Rarity: {item.rarity}</div>

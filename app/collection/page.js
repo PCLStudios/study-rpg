@@ -40,8 +40,8 @@ export default function Collection() {
             )}
             {results.map((r) => (
               <div key={r.id} className="bg-white/5 p-4 rounded-2xl border border-white/10 glass hover:scale-105 hover:-translate-y-1 transform transition-all duration-200">
-                <div className="w-full rounded-lg mb-3 bg-black/10 h-48 flex items-center justify-center overflow-hidden">
-                  <img src={r.coverImage?.large || r.coverImage?.medium} alt={r.title?.romaji} className="w-full object-contain" />
+                <div className="w-full rounded-lg mb-3 bg-black/10 overflow-hidden" style={{paddingBottom: '75%', position: 'relative'}}>
+                  <img src={r.coverImage?.large || r.coverImage?.medium} alt={r.title?.romaji} className="absolute inset-0 w-full h-full object-cover" />
                 </div>
                 <div className="font-semibold">{r.title?.english || r.title?.romaji || r.title?.native}</div>
                 <div className="text-sm text-gray-400">{r.genres?.slice(0,3).join(', ')}</div>

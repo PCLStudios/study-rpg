@@ -222,8 +222,8 @@ export default function Shop() {
             <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
               {catalog.map((c, idx) => (
                 <div key={c.id + String(idx)} className="bg-white/5 p-3 rounded-2xl border border-white/10">
-                  <div className="w-full rounded-lg mb-2 bg-black/10 flex items-center justify-center h-48 overflow-hidden">
-                    <img src={c.image || '/next.svg'} alt={c.title} className="h-full w-full object-contain" />
+                  <div className="w-full rounded-lg mb-2 bg-black/10 overflow-hidden" style={{paddingBottom: '75%', position: 'relative'}}>
+                    <img src={c.image || '/next.svg'} alt={c.title} className="absolute inset-0 w-full h-full object-cover" />
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="text-sm truncate max-w-[70%]">{c.title}</div>
@@ -246,7 +246,9 @@ export default function Shop() {
             <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
               {recent.map((item) => (
                 <div key={item.id} className="bg-white/5 p-3 rounded-2xl border border-white/10">
-                  <img src={item.image || '/next.svg'} alt={item.title} className="w-full rounded-lg mb-2 object-contain h-40" />
+                  <div className="w-full rounded-lg mb-2 bg-black/10 overflow-hidden" style={{paddingBottom: '75%', position: 'relative'}}>
+                    <img src={item.image || '/next.svg'} alt={item.title} className="absolute inset-0 w-full h-full object-cover" />
+                  </div>
                   <div className="text-sm truncate">{item.title}</div>
                 </div>
               ))}
