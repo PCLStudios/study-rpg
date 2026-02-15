@@ -67,6 +67,23 @@ export default function Shop() {
         rarity: sector.toLowerCase(),
       };
 
+      // attempt to fetch image and convert to data URL for reliable persistence
+      try {
+        if (anime.image && anime.image.startsWith('http')) {
+          const resp = await fetch(anime.image);
+          const blob = await resp.blob();
+          const reader = new FileReader();
+          const dataUrl = await new Promise((res, rej) => {
+            reader.onload = () => res(reader.result);
+            reader.onerror = rej;
+            reader.readAsDataURL(blob);
+          });
+          anime.image = dataUrl;
+        }
+      } catch (err) {
+        console.warn('image fetch failed', err);
+      }
+
       const invRaw = localStorage.getItem('inventory');
       const inv = invRaw ? JSON.parse(invRaw) : [];
       if (!inv.find((i) => i.id === anime.id)) inv.unshift(anime);
